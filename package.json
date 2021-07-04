@@ -1,6 +1,6 @@
 {
   "name": "@bswohlers/dunk",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Scalable, TypeScript-first state management framework built on Redux",
   "scripts": {
     "test": "jest --config jestconfig.json",
