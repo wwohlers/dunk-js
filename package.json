@@ -1,0 +1,38 @@
+{
+  "name": "@bswohlers/dunk",
+  "version": "1.0.3",
+  "description": "Scalable, TypeScript-first state management framework built on Redux",
+  "scripts": {
+    "test": "jest --config jestconfig.json",
+    "build": "rimraf dist && tsc",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "lint": "tslint -p tsconfig.json",
+    "deploy": "npm publish --access=public"
+  },
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wwohlers/dunk-js.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wwohlers/dunk-js/issues"
+  },
+  "homepage": "https://github.com/wwohlers/dunk-js#readme",
+  "devDependencies": {
+    "@types/jest": "^26.0.23",
+    "jest": "^27.0.6",
+    "prettier": "^2.3.2",
+    "ts-jest": "^27.0.3",
+    "tslint": "^6.1.3",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^4.3.4"
+  },
+  "dependencies": {
+    "redux": "^4.1.0",
+    "redux-thunk": "^2.3.0"
+  }
+}
