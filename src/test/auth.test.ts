@@ -12,11 +12,11 @@ describe('auth actions', () => {
     const getUser = () => store.useSelector(Store.Auth.selectors.getUser);
     const isSignedIn = () => store.useSelector(Store.Auth.selectors.isSignedIn);
 
-    store.dispatch(Store.Auth.actions.logIn(user));
+    store.dispatch(Store.Auth.actionCreators.logIn(user));
     expect(getUser()).toBe(user);
     expect(isSignedIn()).toBe(true);
 
-    store.dispatch(Store.Auth.actions.logOut());
+    store.dispatch(Store.Auth.actionCreators.logOut());
     expect(getUser()).toBeUndefined();
     expect(isSignedIn()).toBe(false);
   });
@@ -28,7 +28,7 @@ describe('auth selectors', () => {
     const root = () => store.useSelector(Store.Auth.selectors.root);
     const getUser = () => store.useSelector(Store.Auth.selectors.getUser);
 
-    store.dispatch(Store.Auth.actions.logIn(user));
+    store.dispatch(Store.Auth.actionCreators.logIn(user));
     expect(root().user).toEqual(getUser());
   });
 });
@@ -40,7 +40,7 @@ describe('auth thunks', () => {
 
     expect(isSignedIn()).toBe(false);
 
-    await store.dispatch(Store.Auth.thunks.signIn("test"));
+    await store.dispatch(Store.Auth.actionCreators.signIn("test"));
     expect(isSignedIn()).toBe(true);
     const lastSignIn = store.useSelector(Store.Auth.selectors.root).Metadata.lastSignIn;
     expect(lastSignIn && Date.now() - lastSignIn < 1000).toBeTruthy();

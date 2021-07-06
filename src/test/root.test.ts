@@ -5,10 +5,10 @@ describe('root actions', () => {
     const store = initStore();
     const isBrowser = () => store.useSelector(Store.selectors.getSettings).isBrowser;
 
-    store.dispatch(Store.actions.setIsBrowser(true));
+    store.dispatch(Store.actionCreators.setIsBrowser(true));
     expect(isBrowser()).toBe(true);
 
-    store.dispatch(Store.actions.setIsBrowser(false));
+    store.dispatch(Store.actionCreators.setIsBrowser(false));
     expect(isBrowser()).toBe(false);
   });
 
@@ -16,10 +16,10 @@ describe('root actions', () => {
     const store = initStore();
     const theme = () => store.useSelector(Store.selectors.getSettings).theme;
 
-    store.dispatch(Store.actions.setTheme("dark"));
+    store.dispatch(Store.actionCreators.setTheme("dark"));
     expect(theme()).toBe("dark");
 
-    store.dispatch(Store.actions.setTheme("light"));
+    store.dispatch(Store.actionCreators.setTheme("light"));
     expect(theme()).toBe("light");
   })
 });
