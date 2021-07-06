@@ -41,7 +41,7 @@ const fetchTodos = face.defineActionCreator(() => {
 });
 
 export const TodoInterface = face.createInterfacePiece({
-  actions: {
+  actionCreators: {
     addTodo,
     setTodos,
     clearTodos,

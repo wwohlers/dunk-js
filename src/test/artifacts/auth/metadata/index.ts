@@ -15,7 +15,7 @@ const setNumSignIns = face.defineActionCreator((value: number) => ({
 }));
 
 export const AuthMetadataInterface = face.createInterfacePiece({
-  actions: {
+  actionCreators: {
     setLastSignIn,
     setNumSignIns,
   },

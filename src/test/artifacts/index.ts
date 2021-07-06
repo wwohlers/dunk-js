@@ -23,7 +23,7 @@ const setTheme = face.defineActionCreator((value: RootState['settings']['theme']
 
 const RootInterface = face.createInterfacePiece(
   {
-    actions: {
+    actionCreators: {
       setIsBrowser,
       setTheme,
     },

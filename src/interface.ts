@@ -154,7 +154,7 @@ export class DunkInterfaceCreator<D extends DunkModule<any, any, any>, GLOBAL, E
     C extends IncompleteDunkChildren<GLOBAL, ExtractLocalState<D>>,
   >(
     dunk: {
-      actions?: A;
+      actionCreators?: A;
       selectors?: E;
     },
     children: C = {} as C,
@@ -166,7 +166,7 @@ export class DunkInterfaceCreator<D extends DunkModule<any, any, any>, GLOBAL, E
       actionCreators: A;
       selectors: E;
     } = {
-      actionCreators: dunk.actions || ({} as A),
+      actionCreators: dunk.actionCreators || ({} as A),
       selectors: dunk.selectors || ({} as E),
     };
     return {

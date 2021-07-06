@@ -30,7 +30,7 @@ const signIn = face.defineActionCreator((username: string) => {
 });
 export const AuthInterface = face.createInterfacePiece(
   {
-    actions: {
+    actionCreators: {
       logIn,
       logOut,
       signIn,
