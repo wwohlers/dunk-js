@@ -100,68 +100,73 @@ Because `RootModule` contains information about the payload types of each action
 Be sure to export the reducer that is returned by `composeReducers`.
 
 ### index.js
-The index file declares the interface of the module. The interface contains action creators, thunks, and selectors, and specifies the interfaces of the module's children. A piece of the interface for a single module is called an interface piece, and typed as a `DunkInterfacePiece`.
+The index file declares the interface of the module. The interface contains action creators and selectors, and specifies the interfaces of the module's children. The interface for a single module is called an interface piece, and typed as a `DunkInterfacePiece`.
 
-Dunk.js provides the `DunkInterfaceCreator` utility class to help you create a completely type-safe interface for a module. To begin, initialize this class by specifying two type parameters: the `DunkModule` of this module and the type of the root state, `RootState` (this is used to type the `getState` argument when defining thunks). Optionally, you can pass in a third type parameter to specify the type of extra arguments for the thunks, if you pass any to the `thunk` middleware.
+Dunk.js provides the `DunkInterfaceCreator` utility class to help you define a type-safe interface for a module. To begin, initialize this class by specifying two type parameters: the `DunkModule` of this module and the type of the root state, `RootState` (this is used to type the `getState` argument when defining action creators). Optionally, you can pass in a third type parameter to specify the type of extra arguments for action creators, if you pass any to the `thunk` middleware.
 ```
 const creator = new DunkInterfaceCreator<RootModule, RootState>();
 ```
 
-First, we'll specify action creators. Action creators are any functions that return actions that can be processed by this module. These will often -- but need not necessarily -- map one-to-one with actions. Be sure to store the object returned by the `createActionCreators` method, as you'll need it later on when you actually create the full interface piece.
+First, we'll specify selectors. Selectors allow clients of the interface to access the state of the store. We can use `DunkInterfaceCreator.defineSelector()` to create a selector.
 ```
-const actions = creator.createActionCreators({
-	setCounter: (value: number) => ({
-		type: RootActions.SET_COUNTER,
-		payload: value
-	}),
-	incCounter: () => ({
-		type: RootActions.INC_COUNTER
-	}),
-	resetCounter: () => ({
-		type: RootActions.RESET_COUNTER
-	})
-})
-```
-
-Next, we'll specify thunks. Thunks are functions that return `ThunkAction`s, which are like normal actions but can themselves dispatch further actions. Thunks are particularly useful for asynchronous operations. The below example shows how to increase the counter on an interval (without using the `INC_COUNTER` action).
-```
-const thunks = creator.createThunks({
-	countInterval: (interval: number) => {
-		return (dispatch, getState) => {
-			setInterval(() => {
-				const oldCounterValue = getState().counter;
-				dispatch(actions.setCounter(oldCounterValue + 1));
-			}, interval);
-		}
-	}
-})
-```
-
-Note that we need to access actions to be able to dispatch them from thunks. This is why we needed to store the return value of `createActionCreators` above.
-
-Finally, we'll specify selectors. Selectors allow consumers of the interface to read the store. Each selector can perform an arbitrary operation upon the module's state. Usually, this is just used to read a particular part of the state, as shown here: 
-```
-const selectors = creator.createSelectors({
-	getCounter: state => state.counter,
-	doubledCounter: state => state.counter * 2
-})
+const getCounter = creator.defineSelector(state => state.counter);
+const getDoubledCounter = creator.defineSelector(state => state.counter * 2);
 ```
 
 To improve the developer experience, selectors specified for `createSelectors` take the module's state -- not the root state  -- as an argument (though in this particular case, the two happen to be the same since we are creating the root module). When the root interface is finally created -- and only then -- these selectors will be converted to selectors that take the root state as an argument so that they can be used on `getState()` (for example, for use with react-redux's `useSelector` hook). In addition, a `root` selector will be created that selects the root state of the module, i.e., the exact of the entire module, NOT the root state of the entire store (though, again, these two are the same in this case).
 
-The only remaining step is to put everything together to create an interface piece for this module. To do this, we'll call `creator.createInterfacePiece()`, passing in an argument that specifies its actions, thunks, and selectors, and an optional second argument that specifies its children (which we'll skip for now).
+Next, we'll define action creators. Action creators are any functions that return actions or thunk actions that can be processed by this module. We can use `DunkInterfaceCreator.defineActionCreator()` for type inference and additional type-safety, even though these functions are technically just identity functions that return the action creator exactly as passed.
+
+We'll start by defining simple action creators that just return actions.
+```
+const setCounter = creator.defineActionCreator((value: number) => ({
+	type: RootActions.SET_COUNTER,
+	payload: value
+}));
+
+const incCounter = creator.defineActionCreator(() => ({
+	type: RootActions.INC_COUNTER
+}));
+
+const resetCounter = creator.defineActionCreator(() => ({
+	type: RootActions.RESET_COUNTER
+}));
+```
+
+Finally, we'll define action creators that return thunks. Thunks are functions that return `ThunkAction`s, which are like normal actions but can themselves dispatch further actions. Thunks are particularly useful for asynchronous operations. The below example shows how to increase the counter on an interval (without using the `INC_COUNTER` action).
+```
+countInterval = creator.defineActionCreator((interval: number) => {
+	return (dispatch, getState) => {
+		setInterval(() => {
+			const oldCounterValue = getState().counter;
+			dispatch(setCounter(oldCounterValue + 1));
+		}, interval);
+	}
+});
+```
+
+Notice how we can dispatch other action creators that we've already defined from inside the action creator. This makes it easy to create increasingly complex action creators while reducing code duplication.
+
+The only remaining step is to put everything together to create an interface piece for this module. To do this, we'll call `creator.createInterfacePiece()`, passing in an argument that specifies its action creators and selectors.
 ```
 export const RootInterface = creator.createInterfacePiece({
-	actions,
-	thunks,
-	selectors
-})
+	selectors: {
+		getCounter,
+		getDoubledCounter
+	},
+	actionCreators: {
+		setCounter,
+		incCounter,
+		resetCounter,
+		countInterval
+	}
+});
 ```
 
 ## Creating a Dunk store
 Now that we've created our first module, we can create a simple store with it as our root module. Dunk.js makes this incredibly easy.
 
-First, we'll create the actual store (which we would supply to a `Provider`, if we were using react-redux). Dunk.js provides the `createDunkStore` utility function as a sort of wrapper to Redux's `createStore`.
+First, we'll create the actual store (which we would supply to a `Provider`, if we were using react-redux). Dunk.js provides the `createDunkStore` utility function as a wrapper to Redux's `createStore`.
 ```
 const store = createDunkStore(rootReducer);
 ```
@@ -172,7 +177,7 @@ const Store = createDunkInterface(RootInterface);
 
 We can now use this interface to dispatch actions and use selectors, like this:
 ```
-dispatch(Store.actions.resetCounter());
+store.dispatch(Store.actions.resetCounter());
 const counter = Store.selectors.getCounter(store.getState());
 ```
 Note that the type of the store's `dispatch` function is slightly different from both redux's default `dispatch` type as well as redux-thunk's `dispatch` type. If you need to specify the type of `dispatch` (for example when using react-redux's`useSelector`), use `typeof store.dispatch`.
@@ -233,22 +238,24 @@ Finally, `index.ts`:
 ```
 const creator = new DunkInterfaceCreator<SettingsModule, RootState>();
 
-const actions = creator.createActionCreators({
-	setIncStep: (value: number) => ({
-		type: SettingsActions.SET_INC_STEP,
-		payload: value
-	}),
-	setAutoReset: (value: number | undefined) => ({
-		type: SettingsActions.SET_AUTO_RESET,
-		payload: value,
-	})
-});
+const setIncStep = creator.defineActionCreator((value: number) => ({
+	type: SettingsActions.SET_INC_STEP,
+	payload: value
+}));
+
+const setAutoReset = creator.defineActionCreator((value: number | undefined) => ({
+	type: SettingsActions.SET_AUTO_RESET,
+	payload: value,
+}));
 
 export const SettingsInterface = creator.createInterfacePiece({
-	actions
+	actionCreators: {
+		setIncStep,
+		setAutoReset
+	}
 });
 ```
-Note that `actions`, `selectors`, and `thunks` are all optional. As you see here, we omitted selectors and thunks because they aren't necessary for this module.
+We can omit selectors if they aren't necessary for a module. The module's interface will still expose a `root` selector.
 
 Now that we've completed our submodule, we're ready to integrate it into the store by adding it as a child module of the `RootModule`.
 
@@ -283,9 +290,16 @@ That's it.
 Finally, we'll update our interface, where the necessary changes are similarly trivial:
 ```
 export const RootInterface = creator.createInterfacePiece({
-	actions,
-	thunks,
-	selectors
+	selectors: {
+		getCounter,
+		getDoubledCounter
+	},
+	actionCreators: {
+		setCounter,
+		incCounter,
+		resetCounter,
+		countInterval
+	}
 }, {
 	Settings: SettingsInterface
 })
@@ -433,12 +447,13 @@ Returns a store object with essentially the same API as redux's `createStore`. T
 #### DunkInterfaceCreator<D, G, E>
 A class that exposes methods for building a Dunk interface piece for a `DunkModule` `D` and for a store whose root state is `G` (used for the `getState` argument for thunks). Optionally, you can provide a third type for the `extraArguments` argument for thunks. This third type should match the type that you provide to the `extraArguments` parameter of `createDunkStore`, and defaults to `undefined`. 
 
-The constructor takes no arguments and instances of this class have no state. The purpose of this class is to simplify the interface. It has four public methods:
+The constructor takes no arguments and instances of this class have no state. The purpose of this class is to simplify the interface. It has three public methods:
 
-**createActionCreators(actionCreators)** -- used to define action creators, functions that return actions that this module can process. `actionCreators` is an object whose values are action creators. Returns `actionCreators`, exactly as passed.
+**defineActionCreator(actionCreator)** 
+Used to define an action creator, a function that returns an action or thunk action that this module can process. Returns `actionCreator`, exactly as passed. See [here](https://github.com/reduxjs/redux-thunk) for more info about thunks.
 
-**createSelectors(selectors)** -- used to define selectors, functions that take the root state as a parameter and return an operation on that state. `selectors` is an object whose values are *selectors for this module's state, NOT the root state*. In other words, the values of `selectors` are functions that take the local state of the module and return some operation on that state.
+**defineSelector(selector)**
+Used to define a selector, a function that takes the module's state as a parameter and returns anything. 
 
-**createThunks(thunks)** -- used to define functions that return `ThunkAction`s, which are themselves functions that return actions and can be dispatched directly to the store (thanks to redux-thunk middleware). See [here](https://github.com/reduxjs/redux-thunk#motivation) for more info about thunks.
-
-**createInterfacePiece(dunk, children)** -- used to create an interface piece for the module. `dunk` is an object with three optional properties: `actions` (which takes an object of the same type returned by `createActionCreators`), `selectors` (which takes an object of the same type returned by `createSelectors`), and `thunks` (which takes an object of the same type returned by `createThunks`). If the module has children, you should also pass in `children`, an object that specifies the interfaces of that module's children.
+**createInterfacePiece(dunk, children)** 
+Used to create an interface piece for the module. `dunk` is an object with two optional properties: `actionCreators` (which takes an object map of action creators) and `selectors` (which takes an object map of selectors). If the module has children, you should also pass in `children`, an object that specifies the interfaces of the module's children.
