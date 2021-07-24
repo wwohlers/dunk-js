@@ -109,8 +109,8 @@ const creator = new DunkInterfaceCreator<RootModule, RootState>();
 
 First, we'll specify selectors. Selectors allow clients of the interface to access the state of the store. We can use `DunkInterfaceCreator.defineSelector()` to create a selector.
 ```
-const getCounter = creator.defineSelector(state => state.counter);
-const getDoubledCounter = creator.defineSelector(state => state.counter * 2);
+const getCounter = creator.defineSelector(() => state => state.counter);
+const getDoubledCounter = creator.defineSelector(() => state => state.counter * 2);
 ```
 
 To improve the developer experience, selectors specified for `createSelectors` take the module's state -- not the root state  -- as an argument (though in this particular case, the two happen to be the same since we are creating the root module). When the root interface is finally created -- and only then -- these selectors will be converted to selectors that take the root state as an argument so that they can be used on `getState()` (for example, for use with react-redux's `useSelector` hook). In addition, a `root` selector will be created that selects the root state of the module, i.e., the exact of the entire module, NOT the root state of the entire store (though, again, these two are the same in this case).
@@ -178,7 +178,7 @@ const Store = createDunkInterface(RootInterface);
 We can now use this interface to dispatch actions and use selectors, like this:
 ```
 store.dispatch(Store.actions.resetCounter());
-const counter = Store.selectors.getCounter(store.getState());
+const counter = Store.selectors.getCounter()(store.getState());
 ```
 Note that the type of the store's `dispatch` function is slightly different from both redux's default `dispatch` type as well as redux-thunk's `dispatch` type. If you need to specify the type of `dispatch` (for example when using react-redux's`useSelector`), use `typeof store.dispatch`.
 
@@ -453,7 +453,8 @@ The constructor takes no arguments and instances of this class have no state. Th
 Used to define an action creator, a function that returns an action or thunk action that this module can process. Returns `actionCreator`, exactly as passed. See [here](https://github.com/reduxjs/redux-thunk) for more info about thunks.
 
 **defineSelector(selector)**
-Used to define a selector, a function that takes the module's state as a parameter and returns anything. 
+Used to define a selector, a function that takes any arguments and returns a selector, a function
+ that takes the module's state as a parameter and returns anything. 
 
 **createInterfacePiece(dunk, children)** 
 Used to create an interface piece for the module. `dunk` is an object with two optional properties: `actionCreators` (which takes an object map of action creators) and `selectors` (which takes an object map of selectors). If the module has children, you should also pass in `children`, an object that specifies the interfaces of the module's children.

@@ -1,22 +1,25 @@
-import {initStore, Store} from "./artifacts";
-import {Todo} from "./artifacts/api";
+import { initStore, Store } from './artifacts';
+import { Todo } from './artifacts/api';
+import { UndunkedState } from '../index';
+import { RootState } from './artifacts/types';
+import { Selector } from '../interface';
 
 const todo1: Todo = {
-  name: "Todo 1",
+  name: 'Todo 1',
   dueBy: 5,
   completed: false,
 };
 
 const todo2: Todo = {
-  name: "Todo 2",
+  name: 'Todo 2',
   dueBy: 10,
   completed: true,
-}
+};
 
 describe('todos actions', () => {
   it('adds a todo', () => {
     const store = initStore();
-    const getTodos = () => store.useSelector(Store.Todos.selectors.getTodos);
+    const getTodos = () => store.useSelector(Store.Todos.selectors.getTodos());
 
     store.dispatch(Store.Todos.actionCreators.addTodo(todo1));
     expect(getTodos()).toEqual([todo1]);
@@ -27,7 +30,7 @@ describe('todos actions', () => {
 
   it('sets/clears todos', () => {
     const store = initStore();
-    const getTodos = () => store.useSelector(Store.Todos.selectors.getTodos);
+    const getTodos = () => store.useSelector(Store.Todos.selectors.getTodos());
 
     store.dispatch(Store.Todos.actionCreators.setTodos([todo2, todo1]));
     expect(getTodos()).toEqual([todo2, todo1]);
@@ -38,7 +41,8 @@ describe('todos actions', () => {
 
   it('sets/clears active todo', () => {
     const store = initStore();
-    const getActive = () => store.useSelector(Store.Todos.selectors.getActive);
+    const getActive = () =>
+      store.useSelector(Store.Todos.selectors.getActive());
 
     store.dispatch(Store.Todos.actionCreators.setActiveTodo(todo2));
     expect(getActive()).toEqual(todo2);
@@ -48,31 +52,41 @@ describe('todos actions', () => {
   });
 });
 
-describe('root selectors', () => {
-  it('works', () => {
+describe('selectors', () => {
+  test('root selector', () => {
     const store = initStore();
     const getRoot = () => store.useSelector(Store.Todos.selectors.root);
-    const getActive = () => store.useSelector(Store.Todos.selectors.getActive);
+    const getActive = () =>
+      store.useSelector(Store.Todos.selectors.getActive());
 
     store.dispatch(Store.Todos.actionCreators.setTodos([todo1]));
     expect(getRoot().active).toEqual(getActive());
+  });
+
+  test('passing arg to selector', () => {
+    const store = initStore();
+    const getTodo = () =>
+      store.useSelector(Store.Todos.selectors.getTodo(todo1.name));
+    store.dispatch(Store.Todos.actionCreators.setTodos([todo1]));
+    console.log(getTodo());
+    expect(getTodo()).toEqual(todo1);
   });
 });
 
 describe('todos thunks', () => {
   it('fetches todos', async () => {
     const store = initStore();
-    const getTodos = () => store.useSelector(Store.Todos.selectors.getTodos);
+    const getTodos = () => store.useSelector(Store.Todos.selectors.getTodos());
 
     const todos = await store.dispatch(Store.Todos.actionCreators.fetchTodos());
     expect(todos).toEqual([
       {
-        name: "Test Todo 1",
+        name: 'Test Todo 1',
         dueBy: 24023,
         completed: false,
       },
       {
-        name: "Test Todo 2",
+        name: 'Test Todo 2',
         dueBy: 563048,
         completed: true,
       },

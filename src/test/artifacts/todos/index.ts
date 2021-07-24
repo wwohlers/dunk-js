@@ -5,9 +5,13 @@ import { Todo } from '../api';
 
 const face = new DunkInterfaceCreator<TodoModule, RootState, ExtraArgs>();
 
-const getTodos = face.defineSelector((state) => state.todos);
+const getTodos = face.defineSelector(() => (state) => state.todos);
 
-const getActive = face.defineSelector((state) => state.active);
+const getTodo = face.defineSelector((name: string) => (state) => {
+  return state.todos.find((t) => t.name === name);
+});
+
+const getActive = face.defineSelector(() => (state) => state.active);
 
 const addTodo = face.defineActionCreator((todo: Todo) => ({
   type: TodoActions.ADD_TODO,
@@ -51,6 +55,7 @@ export const TodoInterface = face.createInterfacePiece({
   },
   selectors: {
     getTodos,
+    getTodo,
     getActive,
   },
 });

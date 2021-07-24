@@ -9,7 +9,7 @@ import {
   UndunkedState,
 } from './index';
 
-type Selector<S, R> = (state: S) => R;
+export type Selector<S, R> = (state: S) => R;
 
 type ObjectOf<T> = { [key: string]: T };
 
@@ -55,7 +55,12 @@ export type CompletedDunkInterface<
  * @typeParam G the type of the root state of the store
  * @typeParam E the type of any extraArguments provided to the store
  */
-type DunkThunkAction<R, G, E> = ThunkAction<R, UndunkedState<G>, E, DunkAction<string, any>>;
+type DunkThunkAction<R, G, E> = ThunkAction<
+  R,
+  UndunkedState<G>,
+  E,
+  DunkAction<string, any>
+>;
 
 /**
  * A function that creates a DunkAction or a DunkThunkAction.
@@ -80,7 +85,9 @@ type DunkActionCreators<
 /**
  * Type constraint for an incomplete DunkModule's selectors.
  */
-type IncompleteDunkSelectors<S> = ObjectOf<Selector<UndunkedState<S>, any>>;
+type IncompleteDunkSelectors<S> = ObjectOf<
+  (...args: any[]) => Selector<UndunkedState<S>, any>
+>;
 
 /**
  * Type constraint for a complete DunkModule's selectors, including a root selector.
@@ -88,18 +95,26 @@ type IncompleteDunkSelectors<S> = ObjectOf<Selector<UndunkedState<S>, any>>;
 type CompletedDunkSelectors<G, S, I extends IncompleteDunkSelectors<any>> = {
   root: Selector<UndunkedState<G>, UndunkedState<S>>;
 } & {
-  [K in keyof I]: Selector<UndunkedState<G>, ReturnType<I[K]>>;
+  [K in keyof I]: (
+    ...args: Parameters<I[K]>
+  ) => (global: UndunkedState<G>) => ReturnType<ReturnType<I[K]>>;
 };
 
 // Children
-type KeysMatching<T, V> = { [K in keyof T]-?: T[K] extends V ? K : never }[keyof T];
+type KeysMatching<T, V> = {
+  [K in keyof T]-?: T[K] extends V ? K : never;
+}[keyof T];
 /**
  * Type constraint for child DunkModules of an incomplete DunkModule.
  * @typeParam G the root state of the DunkModule
  * @typeParam S the local state of the DunkModule
  */
 type IncompleteDunkChildren<G, S> = {
-  [K in KeysMatching<S, DunkModule<any, any, any>>]: S[K] extends DunkModule<any, any, any>
+  [K in KeysMatching<S, DunkModule<any, any, any>>]: S[K] extends DunkModule<
+    any,
+    any,
+    any
+  >
     ? DunkInterfacePiece<G, S[K], any, any, any, any, any>
     : never;
 };
@@ -109,7 +124,15 @@ type IncompleteDunkChildren<G, S> = {
  * @typeParam I the type of the IncompleteDunkChildren
  */
 type CompletedDunkChildren<I extends IncompleteDunkChildren<any, any>> = {
-  [K in keyof I]: I[K] extends DunkInterfacePiece<infer G, infer S, infer M, infer N, infer A, infer E, infer C>
+  [K in keyof I]: I[K] extends DunkInterfacePiece<
+    infer G,
+    infer S,
+    infer M,
+    infer N,
+    infer A,
+    infer E,
+    infer C
+  >
     ? CompletedDunkInterface<G, S, M, N, A, E, C>
     : never;
 };
@@ -120,15 +143,21 @@ type CompletedDunkChildren<I extends IncompleteDunkChildren<any, any>> = {
  * @typeParam GLOBAL the root state of the Dunk store
  * @typeParam EXTRA extra arguments (used for thunks)
  */
-export class DunkInterfaceCreator<D extends DunkModule<any, any, any>, GLOBAL, EXTRA = undefined> {
+export class DunkInterfaceCreator<
+  D extends DunkModule<any, any, any>,
+  GLOBAL,
+  EXTRA = undefined,
+> {
   /**
    * Define action creators for a Dunk interface.
    * @param actions a dictionary of arbitrary keys to ActionCreators, functions that take
    * arbitrary arguments and return an Action which can be dispatched to the store
    */
-  public defineActionCreator<CREATOR extends ValueOf<DunkActionCreators<GLOBAL, EXTRA, ExtractActionMap<D>>>>(
-    action: CREATOR,
-  ): CREATOR {
+  public defineActionCreator<
+    CREATOR extends ValueOf<
+      DunkActionCreators<GLOBAL, EXTRA, ExtractActionMap<D>>
+    >,
+  >(action: CREATOR): CREATOR {
     return action;
   }
 
@@ -137,9 +166,9 @@ export class DunkInterfaceCreator<D extends DunkModule<any, any, any>, GLOBAL, E
    * @param selector a dictionary of arbitrary keys to Selectors, functions that take the root
    * state as an argument and return the result of an arbitrary operation on that state
    */
-  public defineSelector<SELECTOR extends ValueOf<IncompleteDunkSelectors<ExtractLocalState<D>>>>(
-    selector: SELECTOR,
-  ): SELECTOR {
+  public defineSelector<
+    SELECTOR extends ValueOf<IncompleteDunkSelectors<ExtractLocalState<D>>>,
+  >(selector: SELECTOR): SELECTOR {
     return selector;
   }
 
@@ -158,8 +187,19 @@ export class DunkInterfaceCreator<D extends DunkModule<any, any, any>, GLOBAL, E
       selectors?: E;
     },
     children: C = {} as C,
-  ): DunkInterfacePiece<GLOBAL, ExtractLocalState<D>, ExtractActionMap<D>, ExtractActions<D>, A, E, C> {
-    if (dunk.selectors && Object.keys(dunk.selectors).some((k) => k === 'root')) {
+  ): DunkInterfacePiece<
+    GLOBAL,
+    ExtractLocalState<D>,
+    ExtractActionMap<D>,
+    ExtractActions<D>,
+    A,
+    E,
+    C
+  > {
+    if (
+      dunk.selectors &&
+      Object.keys(dunk.selectors).some((k) => k === 'root')
+    ) {
       throw new Error("Selectors cannot be named 'root'");
     }
     const filledDunk: {
@@ -188,13 +228,40 @@ export const createDunkInterface = <
   SELECTORS extends IncompleteDunkSelectors<GLOBAL>,
   CHILDREN extends IncompleteDunkChildren<GLOBAL, GLOBAL>,
 >(
-  rootInterfacePiece: DunkInterfacePiece<GLOBAL, GLOBAL, MAP, ACTIONS, CREATORS, SELECTORS, CHILDREN>,
-): CompletedDunkInterface<GLOBAL, GLOBAL, MAP, ACTIONS, CREATORS, SELECTORS, CHILDREN> => {
+  rootInterfacePiece: DunkInterfacePiece<
+    GLOBAL,
+    GLOBAL,
+    MAP,
+    ACTIONS,
+    CREATORS,
+    SELECTORS,
+    CHILDREN
+  >,
+): CompletedDunkInterface<
+  GLOBAL,
+  GLOBAL,
+  MAP,
+  ACTIONS,
+  CREATORS,
+  SELECTORS,
+  CHILDREN
+> => {
   const invalidNames = ['actions', 'thunks', 'selectors'];
-  if (Object.keys(rootInterfacePiece.children).some((k) => invalidNames.includes(k))) {
-    throw new Error(`Modules cannot be named ${invalidNames.map((n) => `'${n}'`).join(' or ')}`);
+  if (
+    Object.keys(rootInterfacePiece.children).some((k) =>
+      invalidNames.includes(k),
+    )
+  ) {
+    throw new Error(
+      `Modules cannot be named ${invalidNames
+        .map((n) => `'${n}'`)
+        .join(' or ')}`,
+    );
   }
-  return completeInterface((state: UndunkedState<GLOBAL>) => state, rootInterfacePiece);
+  return completeInterface(
+    (state: UndunkedState<GLOBAL>) => state,
+    rootInterfacePiece,
+  );
 };
 
 /**
@@ -212,27 +279,67 @@ const completeInterface = <
   CHILDREN extends IncompleteDunkChildren<GLOBAL, LOCAL>,
 >(
   rootSelector: (state: UndunkedState<GLOBAL>) => UndunkedState<LOCAL>,
-  interfacePiece: DunkInterfacePiece<GLOBAL, LOCAL, MAP, ACTIONS, CREATORS, SELECTORS, CHILDREN>,
-): CompletedDunkInterface<GLOBAL, LOCAL, MAP, ACTIONS, CREATORS, SELECTORS, CHILDREN> => {
+  interfacePiece: DunkInterfacePiece<
+    GLOBAL,
+    LOCAL,
+    MAP,
+    ACTIONS,
+    CREATORS,
+    SELECTORS,
+    CHILDREN
+  >,
+): CompletedDunkInterface<
+  GLOBAL,
+  LOCAL,
+  MAP,
+  ACTIONS,
+  CREATORS,
+  SELECTORS,
+  CHILDREN
+> => {
   const mappedSelectors = Object.fromEntries(
     Object.entries(interfacePiece.selectors).map(([key, value]) => {
-      return [key, (state: UndunkedState<GLOBAL>) => value(rootSelector(state))];
+      return [
+        key,
+        (...args: Parameters<typeof value>) =>
+          (state: UndunkedState<GLOBAL>) =>
+            value(...args)(rootSelector(state)) as (
+              ...args: Parameters<typeof value>
+            ) => (
+              state: UndunkedState<GLOBAL>,
+            ) => ReturnType<ReturnType<typeof value>>,
+      ];
     }),
-  ) as Omit<CompletedDunkSelectors<GLOBAL, LOCAL, SELECTORS>, 'root'>;
+  ) as unknown as Omit<
+    CompletedDunkSelectors<GLOBAL, LOCAL, SELECTORS>,
+    'root'
+  >;
   const selectors = {
     root: rootSelector,
     ...mappedSelectors,
   } as CompletedDunkSelectors<GLOBAL, LOCAL, SELECTORS>;
 
   const completedChildren = Object.fromEntries(
-    Object.entries(interfacePiece.children).map(([key, value]: [string, any]) => {
-      const typedChild: DunkInterfacePiece<GLOBAL, LOCAL[keyof LOCAL], any, any, any, any, any> = value;
-      const newRootSelector = (state: UndunkedState<GLOBAL>) => {
-        return rootSelector(state)[key as keyof LOCAL] as UndunkedState<LOCAL[keyof LOCAL]>;
-      };
-      const completedChild = completeInterface(newRootSelector, typedChild);
-      return [key, completedChild];
-    }),
+    Object.entries(interfacePiece.children).map(
+      ([key, value]: [string, any]) => {
+        const typedChild: DunkInterfacePiece<
+          GLOBAL,
+          LOCAL[keyof LOCAL],
+          any,
+          any,
+          any,
+          any,
+          any
+        > = value;
+        const newRootSelector = (state: UndunkedState<GLOBAL>) => {
+          return rootSelector(state)[key as keyof LOCAL] as UndunkedState<
+            LOCAL[keyof LOCAL]
+          >;
+        };
+        const completedChild = completeInterface(newRootSelector, typedChild);
+        return [key, completedChild];
+      },
+    ),
   ) as CompletedDunkChildren<CHILDREN>;
 
   return {

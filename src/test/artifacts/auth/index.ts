@@ -6,9 +6,9 @@ import { AuthMetadataInterface } from './metadata';
 
 const face = new DunkInterfaceCreator<AuthModule, RootState, ExtraArgs>();
 
-const getUser = face.defineSelector((state) => state.user);
+const getUser = face.defineSelector(() => (state) => state.user);
 
-const isSignedIn = face.defineSelector((state) => !!state.user);
+const isSignedIn = face.defineSelector(() => (state) => !!state.user);
 
 const logIn = face.defineActionCreator((user: User) => ({
   type: AuthActions.LOG_IN,
